@@ -1,10 +1,47 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.21...4.1.2)
 
-project(motionblurtest)
+project(motionblur)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 26)
 
-add_library(motionblurtest SHARED src/main.cpp)
-target_link_libraries(motionblurtest PUBLIC EGL GLESv2)
+set(CPM_SOURCE_CACHE ${PROJECT_SOURCE_DIR}/cpm-cache CACHE PATH "")
+include(cmake/CPM.cmake)
 
-install(TARGETS motionblurtest LIBRARY DESTINATION mods)
+add_library(motionblur SHARED
+    src/gamewindow.hpp
+    src/main.cpp
+    src/menu.hpp
+    src/motionblur.cpp
+    src/motionblur.hpp
+)
+
+target_compile_options(motionblur PRIVATE
+    -Wall
+    -Wextra
+    -Wconversion
+    -Wpedantic
+)
+
+CPMAddPackage("gh:stephenberry/glaze@7.5.0")
+target_link_libraries(motionblur PRIVATE
+    EGL
+    GLESv2
+    log
+    glaze::glaze
+)
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(motionblur PRIVATE
+        -flto
+    )
+    target_link_options(motionblur PRIVATE
+        -flto
+        -Wl,--version-script,${PROJECT_SOURCE_DIR}/map.txt
+        -Wl,--no-undefined-version
+    )
+    set_target_properties(motionblur PROPERTIES
+        LINK_DEPENDS ${PROJECT_SOURCE_DIR}/map.txt
+    )
+endif()
+
+install(TARGETS motionblur LIBRARY DESTINATION mods)
